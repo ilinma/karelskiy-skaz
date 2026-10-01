@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Карельский сказ: камень, вода и дерево</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marck+Script&family=Neucha&display=swap">
+<style>
+:root{--bg:#f1e4c3;--paper:#f8efd6;--ink:#3b2f2a;--land:#e3d3a2;--water:#9cc7c4;--red:#b5482f;--green:#4f7a4a;--line:#8a6d3b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#241f1a;--paper:#322b23;--ink:#efe3c8;--land:#4a4030;--water:#2d5558;--line:#c9a566}}
+:root[data-theme="dark"]{--bg:#241f1a;--paper:#322b23;--ink:#efe3c8;--land:#4a4030;--water:#2d5558;--line:#c9a566}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Neucha,Georgia,"Times New Roman",serif;font-size:18px;line-height:1.5}
+header{text-align:center;padding:28px 16px 8px}
+h1{font-family:"Marck Script",cursive,Georgia,serif;font-weight:400;font-size:clamp(34px,7vw,64px);margin:0;line-height:1.1;color:var(--red)}
+header p{margin:8px auto 0;max-width:640px}
+.wrap{max-width:1100px;margin:0 auto;padding:12px 16px 40px;display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:start}
+@media(max-width:820px){.wrap{grid-template-columns:1fr}}
+#map{width:100%;height:auto;background:var(--paper);border:3px solid var(--line);border-radius:14px}
+.pt{cursor:pointer}.pt circle{fill:var(--red);stroke:var(--paper);stroke-width:3}.pt text{fill:#fff;font:bold 15px Georgia,serif;text-anchor:middle;pointer-events:none}
+.pt.on circle{fill:var(--green);r:17}
+.lbl{font:15px Neucha,Georgia,serif;fill:var(--ink)}
+.card{background:var(--paper);border:3px solid var(--line);border-radius:14px;padding:14px;position:sticky;top:12px}
+.card svg{width:100%;height:auto;border-radius:10px;border:2px solid var(--line);display:block}
+.card h2{font-family:"Marck Script",cursive,Georgia,serif;font-weight:400;font-size:30px;margin:12px 0 2px;color:var(--red)}
+.tag{font-size:14px;opacity:.75}
+.nav{display:flex;gap:8px;margin-top:12px}
+button{font:inherit;background:var(--red);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;flex:1}
+button:disabled{opacity:.4;cursor:default}
+footer{text-align:center;font-size:14px;opacity:.7;padding:0 16px 24px}
+</style>
+</head>
+<body>
+<header>
+<h1>Карельский сказ</h1>
+<p>Путешествие по земле камня, воды и дерева: от Ладоги к Белому морю. Десять остановок — нажимайте на точки карты или листайте маршрут.</p>
+</header>
+<div class="wrap">
+<svg id="map" viewBox="0 0 600 760" role="img" aria-label="Нарисованная карта Карелии">
+<defs><filter id="w"><feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter></defs>
+<g filter="url(#w)">
+<path d="M90 140 Q200 60 330 90 L560 80 Q580 300 540 560 Q520 700 380 735 Q200 745 100 700 Q50 600 70 450 Q60 250 90 140Z" fill="var(--land)" stroke="var(--line)" stroke-width="4"/>
+<path d="M300 20 L600 20 L600 95 Q520 120 440 112 Q380 100 330 90 Z" fill="var(--water)" stroke="var(--line)" stroke-width="3"/>
+<path d="M395 385 Q440 370 465 410 Q480 520 455 600 Q420 640 395 600 Q375 500 395 385Z" fill="var(--water)" stroke="var(--line)" stroke-width="3"/>
+<path d="M95 640 Q120 560 200 560 Q300 570 300 650 Q290 735 190 740 Q100 730 95 640Z" fill="var(--water)" stroke="var(--line)" stroke-width="3"/>
+<path d="M135 535 L215 515 L300 540" fill="none" stroke="var(--line)" stroke-width="2" stroke-dasharray="2 8"/>
+</g>
+<g id="trees" fill="var(--green)" opacity=".8"></g>
+<polyline id="route" fill="none" stroke="var(--red)" stroke-width="3" stroke-dasharray="3 9" stroke-linecap="round"/>
+<text x="150" y="705" class="lbl" font-style="italic">Ладожское озеро</text>
+<text x="407" y="640" class="lbl" font-style="italic">Онежское озеро</text>
+<text x="420" y="60" class="lbl" font-style="italic">Белое море</text>
+<g id="pts"></g>
+</svg>
+<div class="card"><div id="art"></div><div class="tag" id="tag"></div><h2 id="ttl"></h2><p id="txt"></p>
+<div class="nav"><button id="prev">← Назад</button><button id="next">Далее →</button></div></div>
+</div>
+<footer>Схематичная иллюстрированная карта: расположение точек приблизительное.</footer>
+<script>
+var S='<rect width="300" height="180" fill="#bfe0e6"/><circle cx="245" cy="38" r="20" fill="#f6d57a"/>';
+function pine(x,y,s){s=s||1;return '<path d="M'+x+' '+(y-34*s)+'L'+(x-11*s)+' '+y+'L'+(x+11*s)+' '+y+'Z" fill="#3f6b45"/><rect x="'+(x-2)+'" y="'+y+'" width="4" height="'+6*s+'" fill="#5a3d28"/>'}
+function waves(y,c){var o='';for(var i=0;i<6;i++)o+='<path d="M'+(i*55-10)+' '+(y+i%2*8)+'q14 -9 28 0t28 0" fill="none" stroke="'+c+'" stroke-width="2"/>';return o}
+function dome(x,y,r,c){return '<path d="M'+(x-r)+' '+y+'Q'+(x-r)+' '+(y-r*1.6)+' '+x+' '+(y-r*2.2)+'Q'+(x+r)+' '+(y-r*1.6)+' '+(x+r)+' '+y+'Z" fill="'+c+'"/><path d="M'+x+' '+(y-r*2.2)+'v-9m-3 3h6" stroke="#3b2f2a" stroke-width="1.5"/>'}
+function house(x,w,h,c,r){return '<rect x="'+x+'" y="'+(130-h)+'" width="'+w+'" height="'+h+'" fill="'+c+'"/><path d="M'+(x-4)+' '+(130-h)+'L'+(x+w/2)+' '+(130-h-22)+'L'+(x+w+4)+' '+(130-h)+'Z" fill="'+r+'"/><rect x="'+(x+w/2-4)+'" y="'+(130-h/2)+'" width="8" height="10" fill="#f6d57a"/>'}
+var ground='<rect y="130" width="300" height="50" fill="#6b9a5b"/>',water='<rect y="120" width="300" height="60" fill="#5d9aa6"/>'+waves(135,'#cfe8ee')+waves(160,'#cfe8ee');
+var P=[
+{n:'Сортавала',t:'Город финских домов',x:150,y:548,
+ a:S+water+house(30,50,35,'#d9a35b','#8a3b2a')+house(95,60,45,'#e8d9b0','#4a5f7a')+house(170,45,30,'#b5482f','#3b2f2a')+pine(255,128,1.1),
+ d:'Город на северном берегу Ладоги. До 1940 года он принадлежал Финляндии, поэтому здесь сохранились здания северного модерна и национального романтизма, непохожие на типичные российские города. Отсюда удобно начинать путешествие: на катерах и «Метеорах» можно добраться до Валаама.'},
+{n:'Рускеальский горный парк',t:'Мраморный каньон',x:190,y:500,
+ a:S+'<path d="M0 130L40 50L80 80L120 40L170 90L220 55L300 130Z" fill="#c9c4bb"/><path d="M60 130L100 90L150 130Z" fill="#a9a399"/><rect y="118" width="300" height="62" fill="#3f9a8f"/>'+waves(140,'#bfe6df')+pine(20,118)+pine(275,118,1.2),
+ d:'Бывший мраморный карьер, где камень добывали с XVIII века. Рускеальский мрамор шёл на отделку зданий Петербурга, в том числе Исаакиевского собора и Эрмитажа. Сегодня выработки затоплены, и вода в каньоне получила необычный бирюзовый цвет.'},
+{n:'Остров Валаам',t:'Монастырь среди скал',x:215,y:612,
+ a:S+water+'<path d="M20 125Q70 85 150 95Q240 90 285 125Z" fill="#7a8a6a"/><rect x="95" y="75" width="110" height="38" fill="#f4efe2"/>'+dome(120,75,10,'#2f6f73')+dome(150,70,13,'#d9a35b')+dome(182,75,10,'#2f6f73')+pine(45,112)+pine(255,112),
+ d:'Валаамский архипелаг на Ладожском озере, где находится Спасо-Преображенский монастырь. Основание обители традиционно относят к средневековью. Острова славятся суровой северной природой, скалистыми берегами, шхерами и тихими скитами в лесах.'},
+{n:'Петрозаводск',t:'Столица Карелии',x:385,y:562,
+ a:S+water+'<path d="M0 110H300V122H0Z" fill="#b7a98a"/><path d="M50 110v-30m0 0h-8m8 0h8" stroke="#3b2f2a" stroke-width="3"/><path d="M150 110v-30m0 0h-8m8 0h8" stroke="#3b2f2a" stroke-width="3"/><path d="M200 128h70l-8 14h-54Z" fill="#b5482f"/><path d="M235 128v-35l22 25h-22" fill="#f4efe2"/>',
+ d:'Город основан в 1703 году по указу Петра I как слобода при Александровском пушечном заводе. Сегодня это столица Карелии на берегу Онежского озера. Знаменитая набережная украшена скульптурами, подаренными городами-побратимами.'},
+{n:'Марциальные воды',t:'Первый курорт России',x:345,y:508,
+ a:S+ground+'<rect x="95" y="80" width="110" height="50" fill="#d9a35b"/><path d="M85 82L150 45L215 82Z" fill="#8a3b2a"/><rect x="140" y="100" width="20" height="30" fill="#5a3d28"/><path d="M150 134q-6 12 0 16q6 -4 0 -16" fill="#e07a3a"/>'+pine(40,130,1.2)+pine(255,130,1.2),
+ d:'Курорт, основанный Петром I в 1719 году на источниках с железистой водой. Это первый российский курорт. Воду здесь пили для лечения, и традиция сохранилась до наших дней. Рядом сохранился музей, посвящённый истории курорта.'},
+{n:'Водопад Кивач',t:'Равнинный богатырь',x:330,y:436,
+ a:S+'<path d="M0 130V70H100L130 90L160 105L190 120L300 130Z" fill="#8c8478"/><path d="M110 72Q130 100 150 112Q170 125 190 126L170 130Q140 120 120 95Z" fill="#fff" opacity=".9"/><path d="M120 80v40M140 90v30M160 105v20" stroke="#e8f6fa" stroke-width="3"/><path d="M0 130H300V180H0Z" fill="#5d9aa6"/>'+pine(30,70,1.3)+pine(255,118,1.3),
+ d:'Водопад на реке Суне высотой около 10 метров относится к крупнейшим равнинным водопадам Европы. Он находится на территории заповедника «Кивач», одного из старейших в России, основанного в 1931 году.'},
+{n:'Остров Кижи',t:'Деревянное чудо',x:410,y:470,
+ a:S+water+'<path d="M40 128Q150 100 260 128Z" fill="#7a8a6a"/><rect x="115" y="95" width="70" height="34" fill="#c78d4e"/><rect x="125" y="72" width="50" height="24" fill="#d09a5a"/><rect x="135" y="55" width="30" height="18" fill="#d9a35b"/>'+dome(122,95,9,'#8c8f93')+dome(178,95,9,'#8c8f93')+dome(135,72,8,'#8c8f93')+dome(165,72,8,'#8c8f93')+dome(150,55,10,'#8c8f93'),
+ d:'Погост на острове Онежского озера с Преображенской церковью 1714 года. Она имеет 22 главы и по преданию построена без единого гвоздя. Ансамбль Кижского погоста включён в список Всемирного наследия ЮНЕСКО в 1990 году.'},
+{n:'Онежские петроглифы',t:'Рисунки на граните',x:468,y:520,
+ a:S+'<path d="M10 135Q20 60 100 55Q220 45 290 135Z" fill="#9a9488"/><path d="M80 105h40l6-12 8 6 6-8 8 14h-12v14m-26-14v14m-8-14v14" stroke="#3b2f2a" stroke-width="3" fill="none"/><path d="M175 110q25 12 50 0M200 110v-18l14 14" stroke="#3b2f2a" stroke-width="3" fill="none"/>'+water.replace('y="120"','y="140"'),
+ d:'Наскальные рисунки на мысах восточного берега Онежского озера, такие как Бесов Нос и Пери Нос. Их возраст составляет около шести тысяч лет, а изображений насчитывается более тысячи: лоси, лодки, птицы и загадочные фигуры. Вместе с беломорскими петроглифами они внесены в список ЮНЕСКО.'},
+{n:'Калевала',t:'Родина эпоса',x:250,y:205,
+ a:'<rect width="300" height="180" fill="#2c3a5c"/><circle cx="240" cy="40" r="18" fill="#f6e9b0"/><g fill="#fff"><circle cx="40" cy="30" r="2"/><circle cx="90" cy="55" r="2"/><circle cx="170" cy="25" r="2"/><circle cx="60" cy="80" r="1.5"/></g>'+ground.replace('#6b9a5b','#2f4a3a')+'<path d="M110 120L150 40Q190 50 195 120Z" fill="#c78d4e" stroke="#3b2f2a" stroke-width="3"/><path d="M137 45L150 120M148 45L165 120M158 47L180 120M168 49L190 120" stroke="#f6e9b0" stroke-width="1.5"/>'+pine(30,130,1.4)+pine(265,130,1.4),
+ d:'Поселок в северо-западной Карелии, который с 1963 года носит имя карело-финского эпоса «Калевала». Свод рун по записям, сделанным в этих краях, составил Элиас Лённрот, издав его в 1835 году, а расширенное издание вышло в 1849-м. На рисунке изображён кантеле — традиционный инструмент рунопевцев.'},
+{n:'Кемь',t:'Ворота Белого моря',x:440,y:130,
+ a:S+'<rect y="115" width="300" height="65" fill="#6aa6b8"/>'+waves(140,'#d6edf3')+'<rect x="105" y="85" width="70" height="35" fill="#c78d4e"/><path d="M100 87L140 30L180 87Z" fill="#a8693a"/>'+dome(140,30,6,'#8c8f93').replace('v-9','v-5')+'<path d="M200 118h60l-8 14h-44Z" fill="#b5482f"/><path d="M230 118v-30l16 24h-16" fill="#f4efe2"/>',
+ d:'Город на берегу Белого моря. Главная достопримечательность — деревянный Успенский собор, построенный в 1711–1717 годах и получивший шатровую форму. Из Кеми и ближайшего порта летом отправляются лодки на Соловецкие острова, поэтому город называют воротами Белого моря.'}
+];
+var cur=0,mp=document.getElementById('pts'),tr=document.getElementById('trees');
+document.getElementById('route').setAttribute('points',P.map(function(p){return p.x+','+p.y}).join(' '));
+[[120,180],[150,300],[100,380],[250,300],[200,380],[500,240],[540,330],[510,450],[150,450],[290,260],[310,360],[470,200],[500,160],[120,230]].forEach(function(c){tr.innerHTML+='<path d="M'+c[0]+' '+(c[1]-16)+'L'+(c[0]-8)+' '+c[1]+'L'+(c[0]+8)+' '+c[1]+'Z"/>'});
+P.forEach(function(p,i){var g=document.createElementNS('http://www.w3.org/2000/svg','g');g.setAttribute('class','pt');g.setAttribute('tabindex','0');g.setAttribute('role','button');g.setAttribute('aria-label',p.n);
+g.innerHTML='<circle cx="'+p.x+'" cy="'+p.y+'" r="14"/><text x="'+p.x+'" y="'+(p.y+5)+'">'+(i+1)+'</text>';
+g.onclick=function(){show(i)};g.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();show(i)}};mp.appendChild(g)});
+function show(i){cur=i;var p=P[i];
+document.getElementById('art').innerHTML='<svg viewBox="0 0 300 180" role="img" aria-label="'+p.n+'">'+p.a+'</svg>';
+document.getElementById('tag').textContent='Остановка '+(i+1)+' из '+P.length+' · '+p.t;
+document.getElementById('ttl').textContent=p.n;document.getElementById('txt').textContent=p.d;
+document.getElementById('prev').disabled=i===0;document.getElementById('next').disabled=i===P.length-1;
+Array.prototype.forEach.call(mp.children,function(g,k){g.classList.toggle('on',k===i)})}
+document.getElementById('prev').onclick=function(){if(cur>0)show(cur-1)};
+document.getElementById('next').onclick=function(){if(cur<P.length-1)show(cur+1)};
+show(0);
+</script>
+</body>
+</html>
